@@ -1,4 +1,5 @@
-dataset_root = '/Users/armando/datasets'
+datasets_root = './datasets'
+
 
 def load_dataset(name, size='small', test_with_fake_data=False):
     """Loads dataset by name.
