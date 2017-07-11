@@ -158,7 +158,7 @@ def mvts_to_xy(*tslist, n_x=1, n_y=1, x_idx=None, y_idx=None):
 
 
 # in case of timeseries, always split test train first
-def train_test_split(timeseries, train_size=0.75, val_size=0):
+def train_test_split(timeseries, train_size=0.75, val_size=0.0):
 
     if train_size >= 1:
         raise ValueError('train_size has to be between 0 and 1')
@@ -166,7 +166,7 @@ def train_test_split(timeseries, train_size=0.75, val_size=0):
     if val_size >= 1:
         raise ValueError('val_size has to be between 0 and 1')
 
-    N = timeseries.shape[0];
+    N = timeseries.shape[0]
 
     train_size = int(N * train_size)
     val_size = int(N * val_size)
@@ -192,67 +192,59 @@ def shift(arr, num, fill_value=np.nan):
     return result
 
 # n_x and n_y are number of x and y timesteps respectively
-def mvts_to_xy(*tslist, n_x=1, n_y=1, x_idx=None, y_idx=None):
-    n_ts = len(tslist)
-    if n_ts == 0:
-        raise ValueError('At least one timeseries required as input')
+# def mvts_to_xy(*tslist, n_x=1, n_y=1, x_idx=None, y_idx=None):
+#     n_ts = len(tslist)
+#     if n_ts == 0:
+#         raise ValueError('At least one timeseries required as input')
+#
+#     #TODO: Validation of other options
+#
+#     result = []
+#
+#
+#
+#     for ts in tslist:
+#         ts_cols = 1 if ts.ndim==1 else ts.shape[1]
+#         if x_idx is None:
+#             x_idx = range(0,ts_cols)
+#         if y_idx is None:
+#             y_idx = range(0,ts_cols)
+#
+#         n_x_vars = len(x_idx)
+#         n_y_vars = len(y_idx)
+#
+#         ts_rows = ts.shape[0]
+#         n_rows = ts_rows - n_x - n_y + 1
+#
+#         dataX=np.empty(shape=(n_rows, n_x_vars * n_x),dtype=np.float32)
+#         dataY=np.empty(shape=(n_rows, n_y_vars * n_y),dtype=np.float32)
+#         x_cols, y_cols, names = list(), list(), list()
+#
+#         # input sequence x (t-n, ... t-1)
+#         from_col = 0
+#         for i in range(n_x, 0, -1):
+#             dataX[:,from_col:from_col+n_x_vars]=shift(ts[:,x_idx],i)[n_x:ts_rows-n_y+1]
+#             from_col = from_col+n_x_vars
+#
+#         # forecast sequence (t, t+1, ... t+n)
+#         from_col = 0
+#         for i in range(0, n_y):
+#             #y_cols.append(shift(ts,-i))
+#             dataY[:,from_col:from_col+n_y_vars]=shift(ts[:,y_idx],-i)[n_x:ts_rows-n_y+1]
+#             from_col = from_col + n_y_vars
+#
+#         # put it all together
+#         #x_agg = concat(x_cols, axis=1).dropna(inplace=True)
+#         #y_agg = concat(y_cols, axis=1).dropna(inplace=True)
+#
+#         #dataX = np.array(x_cols,dtype=np.float32)
+#         #dataY = np.array(y_cols,dtype=np.float32)
+#
+#         result.append(dataX)
+#         result.append(dataY)
+#     return result
 
-    #TODO: Validation of other options
 
-    result = []
-
-
-
-    for ts in tslist:
-        ts_cols = 1 if ts.ndim==1 else ts.shape[1]
-        if x_idx is None:
-            x_idx = range(0,ts_cols)
-        if y_idx is None:
-            y_idx = range(0,ts_cols)
-
-        n_x_vars = len(x_idx)
-        n_y_vars = len(y_idx)
-
-        ts_rows = ts.shape[0]
-        n_rows = ts_rows - n_x - n_y + 1
-
-        dataX=np.empty(shape=(n_rows, n_x_vars * n_x),dtype=np.float32)
-        dataY=np.empty(shape=(n_rows, n_y_vars * n_y),dtype=np.float32)
-        x_cols, y_cols, names = list(), list(), list()
-
-        # input sequence x (t-n, ... t-1)
-        from_col = 0
-        for i in range(n_x, 0, -1):
-            dataX[:,from_col:from_col+n_x_vars]=shift(ts[:,x_idx],i)[n_x:ts_rows-n_y+1]
-            from_col = from_col+n_x_vars
-
-        # forecast sequence (t, t+1, ... t+n)
-        from_col = 0
-        for i in range(0, n_y):
-            #y_cols.append(shift(ts,-i))
-            dataY[:,from_col:from_col+n_y_vars]=shift(ts[:,y_idx],-i)[n_x:ts_rows-n_y+1]
-            from_col = from_col + n_y_vars
-
-        # put it all together
-        #x_agg = concat(x_cols, axis=1).dropna(inplace=True)
-        #y_agg = concat(y_cols, axis=1).dropna(inplace=True)
-
-        #dataX = np.array(x_cols,dtype=np.float32)
-        #dataY = np.array(y_cols,dtype=np.float32)
-
-        result.append(dataX)
-        result.append(dataY)
-    return result
-
-
-def load_data(key=None,train_size=None, val_size=None):
-    # Returns
-    #     Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
-    data_dir = datasets_root + '/ucr-2015/' + key
-    ts = np.concatenate((data_train,data_test),axis=0)
-    train,test,val = train_test_split(ts,train_size=0.6,val_size=0.2)
-
-    return train,val,test
 #N = DATA.shape[0]
 
 #ratio = (ratio*N).astype(np.int32)
@@ -278,7 +270,7 @@ def sample_batch(*tslist,batch_size):
     result = []
     for ts in tslist:
 
-        N = X.shape[0]
+        N = ts.shape[0]
         N_idx = np.random.choice(N,batch_size,replace=False)
         result.append(ts[N_idx])
 
