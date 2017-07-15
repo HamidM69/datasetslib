@@ -1,23 +1,12 @@
 from sklearn import preprocessing as skpp
+import pandas as pd
+import numpy as np
 
 class Dataset(object):
 
     def __init__(self,data=None):
-        self.mldata = None # this is where we store columnar data for ML
-        if data is not None:
-            self.data = data
-        #self.data = None
-        #self.init_part()
-
-    @property
-    def mldata(self):
-        return self._mldata
-
-    @mldata.setter
-    def mldata(self, data):  # if mldata is refreshed, also init all parts to none
-        self._mldata=data
+        self.data = data
         self.init_part()
-        self.scaler=None
 
     @property
     def data(self):
@@ -27,6 +16,28 @@ class Dataset(object):
     def data(self, data):
         self._data=data
         self.mldata = None  # if the data is refreshed, also init mldata to none
+
+
+    # this is where we store columnar data for ML
+    @property
+    def mldata(self):
+        return self._mldata
+
+    @mldata.setter
+    def mldata(self, data=None):
+        if data is None:
+            self._mldata=None
+
+        else:
+            if isinstance(data,pd.DataFrame) or isinstance(data,pd.Series):
+                self._mldata = data.values
+            else:
+                self._mldata = data
+            self._mldata = self._mldata.astype(np.float32)
+            if self._mldata.ndim==1:
+                self._mldata = self._mldata.reshape(-1,1)
+        self.scaler=None
+
 
     part_all = ['train','valid','test']
 

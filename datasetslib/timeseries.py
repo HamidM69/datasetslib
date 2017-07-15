@@ -341,29 +341,12 @@ class TimeSeriesDataset(Dataset):
     def __init__(self, data=None):
         Dataset.__init__(self, data)
 
-
-
-    @Dataset.mldata.setter
-    def mldata(self, data=None):
-        if data is None:
-            self._mldata=None
-            self.init_part()
-        else:
-            if isinstance(data,pd.DataFrame) or isinstance(data,pd.Series):
-                self._mldata = data.values
-            else:
-                self._mldata = data
-            if self._mldata.ndim==1:
-                self._mldata = self._mldata.reshape(-1,1)
-            self._mldata = self._mldata.astype(np.float32)
-
-
     # this function assumes there is no missing data
     # dataframe cols in col_idx are numeric
     def train_test_split_dayofweek(self, train_days:list=[0,1,2,3],test_days:list=[4], X_weeks=1,Y_weeks=1, col_names=None):
 
         if self._data is None:
-            raise ValueError('No timeseries found in _data')
+            raise ValueError('No _data found')
 
         all_days = set(train_days) | set(test_days)
         #all_days.sort()
@@ -382,10 +365,11 @@ class TimeSeriesDataset(Dataset):
         #print('Last Friday:',last_friday)
         #print(col_names)
         #print(self._data.index.dayofweek in all_days)
-        day_df = self._data.loc[(self._data.index.dayofweek.isin(all_days)) & (self._data.index >= first_day) & (self._data.index <= last_day), col_names]
+        day_df = self._data.loc[(self._data.index.dayofweek.isin(all_days)) & (self._data.index >= first_day) &
+                                (self._data.index <= last_day), col_names]
 
-        self.mldata = day_df.values.astype(np.float32)
-        self.mldata_col_names = col_names
+        #self.mldata = day_df.values.astype(np.float32)
+        #self.mldata_col_names = col_names
 
         self.part['train'] = day_df.loc[day_df.index.dayofweek.isin(train_days)].values.astype(np.float32)
         self.part['test'] =  day_df.loc[day_df.index.dayofweek.isin(test_days)].values.astype(np.float32)
@@ -398,12 +382,10 @@ class TimeSeriesDataset(Dataset):
         results.append(self.part['train'])
         results.append(self.part['test'])
 
-        #print(self._mldata.shape)
+        #print(self.part['train'][:5])
 
-
-        #print(self.part['test'].shape)
-
-        # now split into train and test
+        self.data=None
+        self.mldata=None
         return results
 
 
@@ -451,15 +433,23 @@ class TimeSeriesDataset(Dataset):
     # returns input series : {t-n_tx,...,t}, output series : {t+h,...,t+h+n_ty}
     # x_idx is the list of columns that would be used as input or feature
     # y_idx is the list of columns that would be used as output or target
-    def mvts_to_xy(self, n_tx=1, n_ty=1, x_idx=None, y_idx=None, h=1, only_parts=None):
-        if self._mldata is None:
-            raise ValueError('No timeseries found')
+    def mvts_to_xy(self, n_tx=1, n_ty=1, x_idx=None, y_idx=None, h=1, ts_list=None):
 
-        ts_cols = 1 if self._mldata.ndim==1 else self._mldata.shape[1]
+        if ts_list is not None:
+            if not self.check_part_list(ts_list):
+                raise ValueError('the part you have asked to split is not available')
+        else:
+            ts_list = self.part_list
+            if not ts_list:
+                raise ValueError('Timeseries has not been split into train, valid, test. Run one of the train_test_split method first')
+
+        ts_cols = 1 if self.part[ts_list[0]].ndim==1 else self.part[ts_list[0]].shape[1]
+
         if x_idx is None:
             x_idx = range(0,ts_cols)
         if y_idx is None:
             y_idx = range(0,ts_cols)
+
         self.x_idx = x_idx
         self.y_idx = y_idx
         self.y_cols_x_idx = [x_idx.index(i) for i in y_idx]
@@ -467,16 +457,7 @@ class TimeSeriesDataset(Dataset):
         n_x_vars = len(x_idx)
         n_y_vars = len(y_idx)
 
-        if only_parts is not None:
-            if self.check_part_list(only_parts):
-                ts_list = only_parts
-            else:
-                ts_list = []
-                raise ValueError('the part you have asked to split is not available')
-        else:
-            ts_list = self.part_list
-            if not ts_list:
-                raise ValueError('Timeseries has not been split into train, valid, test. Run train_test_split method first')
+
 
 
         #TODO: Validation of other options

@@ -1,5 +1,9 @@
 import numpy as np
 import six
+import sys
+import datetime
+import gc
+import time
 
 def df_to_sarray(df):
     """
@@ -51,3 +55,26 @@ def to2d(arr):
     if arr.ndim==1:
         arr = arr.reshape(-1,1)
     return arr
+
+sflush = sys.stdout.flush
+
+def timestamp():
+    return datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+class ExpTimer:
+    def start(self):
+        gc.collect()
+        gc.disable()
+        self.start_time = time.process_time()
+    def stop(self):
+        self.stop_time = time.process_time()
+        gc.enable()
+        gc.collect()
+    @property
+    def elapsedTime(self):
+        return self.stop_time - self.start_time
+
+def objvars(obj):
+    print('obj size:{}'.format(sys.getsizeof(obj)))
+    for attr in vars(obj):
+        print('  .{} type:{}'.format(attr,type(attr)))
