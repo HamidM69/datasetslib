@@ -18,7 +18,7 @@ def df_to_sarray(df):
     vals = df.values.astype(np.float32)
     #print('vals shape:',vals.shape)
     cols = df.columns
-    print[cols]
+    #print[cols]
     if six.PY2:  # python 2 needs .encode() but 3 does not
         types = [(cols[i].encode(), df[k].dtype.type) for (i, k) in enumerate(cols)]
     else:
