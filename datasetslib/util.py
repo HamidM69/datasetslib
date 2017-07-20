@@ -75,6 +75,6 @@ class ExpTimer:
         return self.stop_time - self.start_time
 
 def objvars(obj):
-    print('obj size:{}'.format(sys.getsizeof(obj)))
+    print('obj size:{0}'.format(sys.getsizeof(obj)))
     for attr in vars(obj):
-        print('  .{} type:{}'.format(attr,type(attr)))
+        print('  .{0} type:{1}'.format(attr,type(attr)))
