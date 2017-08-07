@@ -1,4 +1,4 @@
-from sklearn import preprocessing as skpp
+from sklearn.preprocessing import StandardScaler as skpp_StandardScaler
 import pandas as pd
 import numpy as np
 
@@ -27,7 +27,6 @@ class Dataset(object):
     def mldata(self, data=None):
         if data is None:
             self._mldata=None
-
         else:
             if isinstance(data,pd.DataFrame) or isinstance(data,pd.Series):
                 self._mldata = data.values
@@ -37,7 +36,6 @@ class Dataset(object):
             if self._mldata.ndim==1:
                 self._mldata = self._mldata.reshape(-1,1)
         self.scaler=None
-
 
     part_all = ['train','valid','test']
 
@@ -131,7 +129,7 @@ class Dataset(object):
         X_list = self.X_list if self.part['X'] is None else self.X_list.append('X')
 
         if X_list:
-            self.scaler=skpp.StandardScaler(copy=False)
+            self.scaler=skpp_StandardScaler(copy=False)
             self.part[X_list[0]] = self.scaler.fit_transform(self.part[X_list[0]])
             for part in X_list[1:]:
                 if self.part[part] is not None:
