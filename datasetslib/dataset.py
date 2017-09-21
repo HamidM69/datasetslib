@@ -58,7 +58,7 @@ class Dataset(object):
     def X_list(self):
         X_list=[]
         for part in Dataset.part_all:
-            if self.part[part] is not None:
+            if self.part['X_'+part] is not None:
                 X_list.append('X_'+part)
         return X_list
 
@@ -66,7 +66,7 @@ class Dataset(object):
     def Y_list(self):
         Y_list=[]
         for part in Dataset.part_all:
-            if self.part[part] is not None:
+            if self.part['Y_'+part] is not None:
                 Y_list.append('Y_'+part)
         return Y_list
 
@@ -88,6 +88,18 @@ class Dataset(object):
             'test'     : None,
             'valid'    : None,
         }
+        self.part_batch_start={
+            'train'    : 0,
+            'test'     : 0,
+            'valid'    : 0,
+        }
+
+    @property
+    def n_train(self):
+        if self.part['Y_train'] is None:
+            return self.part['train'].shape[0]
+        else:
+            return self.part['Y_train'].shape[0]
 
     @property
     def X_train(self):
@@ -146,3 +158,53 @@ class Dataset(object):
                         self.part[part] = self.scaler.inverse_transform(self.part[part])
         else:
             return self.scaler.inverse_transform(data, copy=True)
+
+    def next_batch(self, batch_size, part, shuffle=True):
+        if part in Dataset.part_all:
+            xpart = 'X_'+part
+            ypart = 'Y_'+part
+            start = self.part_batch_start[part] #self._index_in_batched_epoch
+            n_rows = self.part[ypart].shape[0]
+
+            # Shuffle for the first epoch
+            if start == 0 and shuffle:
+                perm0 = np.arange(n_rows)
+                np.random.shuffle(perm0)
+                self.part[xpart] = self.part[xpart][perm0]
+                self.part[ypart] = self.part[ypart][perm0]
+
+            self.part_batch_start[part] += batch_size
+            if self.part_batch_start[part] >= n_rows:
+                self.part_batch_start[part] = 0
+                end = n_rows
+            else:
+                end = self.part_batch_start[part]
+
+            return self.part[xpart][start:end], self.part[ypart][start:end]
+        else:
+            raise(ValueError('Invalid argument: ',part))
+
+            # # Go to the next epoch
+            # if start + batch_size > n_rows:
+            #     # last epoch
+            #     self._epochs_completed += 1
+            #     # Get the rest examples in this epoch
+            #     rest_num_examples = self._num_examples - start
+            #     images_rest_part = self._images[start:self._num_examples]
+            #     labels_rest_part = self._labels[start:self._num_examples]
+            #     # Shuffle the data
+            #     if shuffle:
+            #         perm = np.arange(self._num_examples)
+            #         np.random.shuffle(perm)
+            #         self._images = self.images[perm]
+            #         self._labels = self.labels[perm]
+            #     # Start next epoch
+            #     start = 0
+            #     self._index_in_batched_epoch = batch_size - rest_num_examples
+            #     end = self._index_in_batched_epoch
+            #     images_new_part = self._images[start:end]
+            #     labels_new_part = self._labels[start:end]
+            #     return np.concatenate((images_rest_part, images_new_part), axis=0) , numpy.concatenate((labels_rest_part, labels_new_part), axis=0)
+            # else:
+            #
+            #     return self._images[start:end], self._labels[start:end]

@@ -4,7 +4,62 @@ import sys
 import datetime
 import gc
 import time
+try:
+
+    # Python 2
+    from itertools import izip
+except ImportError:
+    # Python 3
+    izip = zip
+
 from datetime import timedelta
+from six.moves.urllib.error import HTTPError
+from six.moves.urllib.error import URLError
+if sys.version_info[0] == 2:
+    from six.moves.urllib.request import urlopen
+    def urlretrieve(url, filename, reporthook=None, data=None):
+        """Replacement for `urlretrive` for Python 2.
+        Under Python 2, `urlretrieve` relies on `FancyURLopener` from legacy
+        `urllib` module, known to have issues with proxy management.
+        # Arguments
+            url: url to retrieve.
+            filename: where to store the retrieved data locally.
+            reporthook: a hook function that will be called once
+                on establishment of the network connection and once
+                after each block read thereafter.
+                The hook will be passed three arguments;
+                a count of blocks transferred so far,
+                a block size in bytes, and the total size of the file.
+            data: `data` argument passed to `urlopen`.
+        """
+
+        def chunk_read(response, chunk_size=8192, reporthook=None):
+            content_type = response.info().get('Content-Length')
+            total_size = -1
+            if content_type is not None:
+                total_size = int(content_type.strip())
+            count = 0
+            while 1:
+                chunk = response.read(chunk_size)
+                count += 1
+                if not chunk:
+                    reporthook(count, total_size, total_size)
+                    break
+                if reporthook:
+                    reporthook(count, chunk_size, total_size)
+                yield chunk
+
+        response = urlopen(url, data)
+        with open(filename, 'wb') as fd:
+            for chunk in chunk_read(response, reporthook=reporthook):
+                fd.write(chunk)
+else:
+    from six.moves.urllib.request import urlretrieve
+
+
+import os
+import tarfile
+import shutil
 
 def df_to_sarray(df):
     """
@@ -58,6 +113,9 @@ def to2d(arr):
     return arr
 
 sflush = sys.stdout.flush
+
+def np_one_hot(y,n_classes):
+    return np.eye(n_classes)[y]
 
 def timestamp():
     return datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -238,3 +296,115 @@ def getfunc(fname, objects=globals()):
         raise(ValueError('No such function: {0}'.format(fname)))
     else:
         return fn
+
+def maybe_extract(filename, dirname, force=False):
+    root = os.path.splitext(os.path.splitext(filename)[0])[0]  # remove .tar.gz
+    if os.path.isdir(root) and not force:
+        # You may override by setting force=True.
+        print('%s already present - Skipping extraction of %s.' % (root, filename))
+    else:
+        print('Extracting data for %s. This may take a while. Please wait.' % root)
+        tar = tarfile.open(filename)
+        sys.stdout.flush()
+        tar.extractall(dirname)
+        tar.close()
+    data_folders = [
+        os.path.join(root, d) for d in sorted(os.listdir(root))
+        if os.path.isdir(os.path.join(root, d))]
+    if len(data_folders) != num_classes:
+        raise Exception(
+            'Expected %d folders, one per class. Found %d instead.' % (
+                num_classes, len(data_folders)))
+    print(data_folders)
+    return data_folders
+
+def extract_archive(arch_file, dest_dir='.', archive_format='auto'):
+    """Extracts an archive if it matches tar, tar.gz, tar.bz, or zip formats.
+    # Arguments
+        file_path: path to the archive file
+        path: path to extract the archive file
+        archive_format: Archive format to try for extracting the file.
+            Options are 'auto', 'tar', 'zip', and None.
+            'tar' includes tar, tar.gz, and tar.bz files.
+            The default 'auto' is ['tar', 'zip'].
+            None or an empty list will return no matches found.
+    # Returns
+        True if a match was found and an archive extraction was completed,
+        False otherwise.
+    """
+    if archive_format is None:
+        return False
+    if archive_format is 'auto':
+        archive_format = ['tar', 'zip']
+    if isinstance(archive_format, six.string_types):
+        archive_format = [archive_format]
+
+    for archive_type in archive_format:
+        if archive_type is 'tar':
+            open_fn = tarfile.open
+            is_match_fn = tarfile.is_tarfile
+        if archive_type is 'zip':
+            open_fn = zipfile.ZipFile
+            is_match_fn = zipfile.is_zipfile
+
+        if is_match_fn(arch_file):
+            with open_fn(arch_file) as archive:
+                try:
+                    archive.extractall(dest_path)
+                except (tarfile.TarError, RuntimeError,
+                        KeyboardInterrupt):
+                    if os.path.exists(dest_path):
+                        if os.path.isfile(dest_path):
+                            os.remove(dest_path)
+                        else:
+                            shutil.rmtree(dest_path)
+                    raise
+            return True
+    return False
+
+def download_dataset(source_url, source_files, dest_dir, dest_files=None, force = False, extract = False):
+    """Download the data from source url, unless it's already here.
+    Args:
+        dest_file: string, name of the file in the directory.
+        dest_dir: string, path to working directory.
+        source_url: url to download from if file doesn't exist.
+    Returns:
+        Path to resulting file.
+    """
+    if dest_files is None:
+        dest_files = source_files
+
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+
+    downloaded_files=[]
+
+    for source_file,dest_file in izip(source_files, dest_files):
+        orig = source_url + source_file
+        dest = os.path.join(dest_dir, dest_file)
+        if force or not os.path.exists(dest):
+            print('Downloading:', orig)
+            error_msg = 'URL fetch failure on {}: {} -- {}'
+
+            try:
+                try:
+                    downloaded_file, _ = urlretrieve(orig,dest, reporthook=None)
+                except URLError as e:
+                    raise Exception(error_msg.format(orig, e.errno, e.reason))
+                except HTTPError as e:
+                    raise Exception(error_msg.format(orig, e.code, e.msg))
+            except (Exception, KeyboardInterrupt) as e:
+                if os.path.exists(dest):
+                    os.remove(dest)
+                raise
+
+            statinfo = os.stat(dest)
+            print('Downloaded :',dest,'(',statinfo.st_size,'bytes)')
+        else:
+            print('Already exists:',dest)
+        downloaded_files.append(dest)
+        if extract:
+            extract_archive(arch_file=dest, dest_dir=dest_dir, archive_format='auto')
+    return downloaded_files
+
+
