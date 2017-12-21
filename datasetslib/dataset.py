@@ -1,11 +1,20 @@
+import future, builtins, past, six
+from builtins import super
+
 from sklearn.preprocessing import StandardScaler as skpp_StandardScaler
 import pandas as pd
 import numpy as np
+
+from .utils import nputil
+
 
 class Dataset(object):
 
     def __init__(self,data=None):
         self.data = data
+        self.y_onehot=False
+        self.batch_size = 128
+        self.batch_shuffle = False
         self.init_part()
 
     @property
@@ -17,6 +26,29 @@ class Dataset(object):
         self._data=data
         self.mldata = None  # if the data is refreshed, also init mldata to none
 
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, batch_size):
+        self._batch_size=batch_size
+
+    @property
+    def batch_shuffle(self):
+        return self._batch_shuffle
+
+    @batch_shuffle.setter
+    def batch_shuffle(self, batch_shuffle):
+        self._batch_shuffle=batch_shuffle
+
+    @property
+    def y_onehot(self):
+        return self._y_onehot
+
+    @y_onehot.setter
+    def y_onehot(self, y_onehot):
+        self._y_onehot=y_onehot
 
     # this is where we store columnar data for ML
     @property
@@ -88,7 +120,7 @@ class Dataset(object):
             'test'     : None,
             'valid'    : None,
         }
-        self.part_batch_start={
+        self.index={
             'train'    : 0,
             'test'     : 0,
             'valid'    : 0,
@@ -97,9 +129,10 @@ class Dataset(object):
     @property
     def n_train(self):
         if self.part['Y_train'] is None:
-            return self.part['train'].shape[0]
+            self._n_train = self.part['train'].shape[0]
         else:
-            return self.part['Y_train'].shape[0]
+            self._n_train = self.part['Y_train'].shape[0]
+        return self._n_train
 
     @property
     def X_train(self):
@@ -115,15 +148,27 @@ class Dataset(object):
 
     @property
     def Y_train(self):
-        return self.part['Y_train']
+        retval = self.part['Y_train']
+        if self.y_onehot:
+            return nputil.one_hot(retval)
+        else:
+            return retval
 
     @property
     def Y_valid(self):
-        return self.part['Y_valid']
+        retval = self.part['Y_valid']
+        if self.y_onehot:
+            return nputil.one_hot(retval)
+        else:
+            return retval
 
     @property
     def Y_test(self):
-        return self.part['Y_test']
+        retval = self.part['Y_test']
+        if self.y_onehot:
+            return nputil.one_hot(retval)
+        else:
+            return retval
 
     @property
     def train(self):
@@ -159,28 +204,61 @@ class Dataset(object):
         else:
             return self.scaler.inverse_transform(data, copy=True)
 
-    def next_batch(self, batch_size, part, shuffle=True):
+    def reset_index(self, part='train'):
+        self.index[part]=0
+
+    # does not mutate x
+    def shuffle_xy(self,x,y):
+        assert len(x) == len(y), 'x and y are not of same length'
+        indices = np.arange(len(x))
+        np.random.shuffle(indices)
+        if isinstance(x,list):
+            x_ret = [x[i] for i in indices]
+        elif isinstance(x,np.ndarray):
+            x_ret = x[indices]
+        else:
+            print('Data type of X not understood in shuffle')
+            x_ret = x
+
+        if isinstance(y,list):
+            y_ret = [y[i] for i in indices]
+        elif isinstance(y,np.ndarray):
+            y_ret = y[indices]
+        else:
+            print('Data type of Y not understood in shuffle')
+            y_ret = y
+
+        return x_ret, y_ret
+
+    def next_batch(self, part='train'):
         if part in Dataset.part_all:
             xpart = 'X_'+part
             ypart = 'Y_'+part
-            start = self.part_batch_start[part] #self._index_in_batched_epoch
+            start = self.index[part] #self._index_in_batched_epoch
             n_rows = self.part[ypart].shape[0]
 
             # Shuffle for the first epoch
-            if start == 0 and shuffle:
+            if start == 0 and self.batch_shuffle:
                 perm0 = np.arange(n_rows)
-                np.random.shuffle(perm0)
-                self.part[xpart] = self.part[xpart][perm0]
-                self.part[ypart] = self.part[ypart][perm0]
 
-            self.part_batch_start[part] += batch_size
-            if self.part_batch_start[part] >= n_rows:
-                self.part_batch_start[part] = 0
+                #self.part[xpart] = self.part[xpart][perm0]
+                self.part[xpart], self.part[ypart] = self.shuffle_xy(self.part[xpart], self.part[ypart])
+
+            self.index[part] += self.batch_size
+            if self.index[part] >= n_rows:
+                self.reset_index(part)
                 end = n_rows
             else:
-                end = self.part_batch_start[part]
+                end = self.index[part]
 
-            return self.part[xpart][start:end], self.part[ypart][start:end]
+            y_batch = self.part[ypart][start:end]
+
+            if self.y_onehot:
+                y_batch = nputil.one_hot(y_batch)
+            else:
+                y_batch = nputil.to2d(y_batch)
+
+            return self.part[xpart][start:end], y_batch
         else:
             raise(ValueError('Invalid argument: ',part))
 

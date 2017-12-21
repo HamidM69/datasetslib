@@ -4,8 +4,12 @@ import sys
 import datetime
 import gc
 import time
-try:
+import os
+import tarfile
+import zipfile
+import shutil
 
+try:
     # Python 2
     from itertools import izip
 except ImportError:
@@ -57,10 +61,6 @@ else:
     from six.moves.urllib.request import urlretrieve
 
 
-import os
-import tarfile
-import shutil
-
 def df_to_sarray(df):
     """
     Convert a pandas DataFrame object to a numpy structured array.
@@ -94,7 +94,7 @@ def df_to_sarray(df):
         z[k] = vals[:, i]
     return z
 
-def shift(arr, num, fill_value=np.nan):
+def shift(arr, num, fill_value=0):
     #print(arr)
     result = np.empty_like(arr)
     if num > 0:
@@ -106,11 +106,6 @@ def shift(arr, num, fill_value=np.nan):
     else:
         result = arr
     return result
-
-def to2d(arr):
-    if arr.ndim==1:
-        arr = arr.reshape(-1,1)
-    return arr
 
 sflush = sys.stdout.flush
 
@@ -318,7 +313,7 @@ def maybe_extract(filename, dirname, force=False):
     print(data_folders)
     return data_folders
 
-def extract_archive(arch_file, dest_dir='.', archive_format='auto'):
+def extract_archive(archive_file, dest_dir='.', archive_format='auto'):
     """Extracts an archive if it matches tar, tar.gz, tar.bz, or zip formats.
     # Arguments
         file_path: path to the archive file
@@ -347,17 +342,17 @@ def extract_archive(arch_file, dest_dir='.', archive_format='auto'):
             open_fn = zipfile.ZipFile
             is_match_fn = zipfile.is_zipfile
 
-        if is_match_fn(arch_file):
-            with open_fn(arch_file) as archive:
+        if is_match_fn(archive_file):
+            with open_fn(archive_file) as archive:
                 try:
-                    archive.extractall(dest_path)
+                    archive.extractall(dest_dir)
                 except (tarfile.TarError, RuntimeError,
                         KeyboardInterrupt):
-                    if os.path.exists(dest_path):
-                        if os.path.isfile(dest_path):
-                            os.remove(dest_path)
+                    if os.path.exists(dest_dir):
+                        if os.path.isfile(dest_dir):
+                            os.remove(dest_dir)
                         else:
-                            shutil.rmtree(dest_path)
+                            shutil.rmtree(dest_dir)
                     raise
             return True
     return False
@@ -402,9 +397,7 @@ def download_dataset(source_url, source_files, dest_dir, dest_files=None, force 
             print('Downloaded :',dest,'(',statinfo.st_size,'bytes)')
         else:
             print('Already exists:',dest)
-        downloaded_files.append(dest)
+        downloaded_files.append(dest_file)
         if extract:
-            extract_archive(arch_file=dest, dest_dir=dest_dir, archive_format='auto')
+            extract_archive(archive_file=dest, dest_dir=dest_dir, archive_format='auto')
     return downloaded_files
-
-

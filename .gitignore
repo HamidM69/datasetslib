@@ -2,3 +2,5 @@
 *.pyc
 workspace.xml
 __pycache__
+.idea
+
