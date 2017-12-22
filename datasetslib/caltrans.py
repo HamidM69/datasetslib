@@ -5,10 +5,8 @@ from datetime import datetime
 
 class CalTrans():
 
-    orig_agg_data_dic = {'dt':0,'segment':1,'district':2,'freeway':3,'travel_direction':4,'lane_type':5,
-                'segment_length':6,'samples':7,'percent_observed':8,'vcount':9,'average_occupancy':10,'vspeed':11}
-
-    orig_agg_col_names = list(orig_agg_data_dic.keys())
+    orig_agg_column_names = ['dt','segment','district','freeway','direction_travel','lane_type',
+                         'segment_length','samples','percent_observed','vcount','average_occupancy','vspeed']
 
     #df_agg_column_names = ['dt','segment','district','freeway','direction_travel','lane_type',
     #                       'segment_length','samples','percent_observed','vcount','average_occupancy','vspeed']
@@ -25,7 +23,6 @@ class CalTrans():
         super().__init__()
         self.dataset_name='caltrans'
         self.dataset_home=os.path.join(datasets_root,self.dataset_name)
-
 
     def preprocess_agg_files(self,sourceFolder, targetFolder=None, col_names = None):
 
