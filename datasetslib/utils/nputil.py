@@ -1,9 +1,14 @@
 import numpy as np
 import imageio
 
+_EPSILON = 1e-7
+
 def image_layout(x, old, new):
-    new = [old.index(char) for char in new]
-    return np.transpose(x,new)
+    if old!=new:
+        new = [old.index(char) for char in new]
+        return np.transpose(x,new)
+    else:
+        return x
 
 def image_np2nhwc(x,h,w,c):
     return np.reshape(x,[-1,h,w,c])
@@ -33,3 +38,25 @@ def to2d(x,unit_axis=1):
         col = -1
         row = 1
     return np.reshape(x,[row,col])
+
+
+def smape(x, x_hat):
+    diff = np.abs(((x - x_hat) * 2) / np.clip(np.abs(x + x_hat),
+                                              _EPSILON,
+                                              None)
+                  )
+    return 100. * np.mean(diff)
+
+def mse(x, x_hat):
+    return np.mean((x_hat - x) ** 2)
+
+
+def mae(x, x_hat):
+    return np.mean(np.abs(x_hat - x))
+
+
+def mape(x, x_hat):
+    diff = np.abs((x - x_hat) / np.clip(np.abs(x),
+                                        _EPSILON,
+                                        None))
+    return 100. * np.mean(diff)

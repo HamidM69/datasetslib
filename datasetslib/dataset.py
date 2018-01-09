@@ -16,6 +16,7 @@ class Dataset(object):
         self.batch_size = 128
         self.batch_shuffle = False
         self.init_part()
+        self.n_classes = 0
 
     @property
     def data(self):
@@ -254,7 +255,7 @@ class Dataset(object):
             y_batch = self.part[ypart][start:end]
 
             if self.y_onehot:
-                y_batch = nputil.one_hot(y_batch)
+                y_batch = nputil.one_hot(y_batch,self.n_classes)
             else:
                 y_batch = nputil.to2d(y_batch)
 

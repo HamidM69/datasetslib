@@ -9,6 +9,9 @@ import numpy as np
 from .images import ImagesDataset
 from . import datasets_root
 from . import util
+from .utils import imutil
+from .utils import nputil
+
 try:
     # Python 2
     from itertools import izip
@@ -30,10 +33,12 @@ class cifar10(ImagesDataset):
         self.width=32
         self.depth=3
 
-        self.x_shape = 'NCHW' ## other alternates are NHW and NHCW
+        self.x_layout = imutil.LAYOUT_NCHW
+        self.x_layout_file = imutil.LAYOUT_NCHW
+
         self.n_classes = 10
 
-    def load_data(self,force=False,x_shape=None,one_hot=True):
+    def load_data(self,force=False, shuffle=True, x_is_images=False):
         self.downloaded_files=util.download_dataset(source_url=self.source_url,
                                                     source_files=self.source_files,
                                                     dest_dir = self.dataset_home,
@@ -43,11 +48,11 @@ class cifar10(ImagesDataset):
         n_train = 50000
         n_test = 10000
 
-        print('Extracting ',self.downloaded_files[0])
+        print('Extracting ',os.path.join(self.dataset_home,self.downloaded_files[0]))
         x_train = np.zeros((n_train, 3, 32, 32), dtype=np.uint8)
         y_train = np.zeros((n_train,), dtype=np.uint8)
 
-        with tarfile.open(self.downloaded_files[0]) as archfile:
+        with tarfile.open(os.path.join(self.dataset_home,self.downloaded_files[0])) as archfile:
             for i in range(1, 6):
                 pfile='cifar-10-batches-py/data_batch_' + str(i)
                 f = archfile.extractfile(pfile)
@@ -66,15 +71,12 @@ class cifar10(ImagesDataset):
         y_train = np.reshape(y_train,len(y_train),1)
         y_test = np.reshape(y_test,len(y_test),1)
 
-        if one_hot:
-            y_train = util.np_one_hot(n_classes=self.n_classes,y=y_train)
-            y_test = util.np_one_hot(n_classes=self.n_classes,y=y_test)
+        if self.x_layout != self.x_layout_file:
+            x_train = nputil.image_layout(x_train,old=self.x_layout_file,new=self.x_layout)
+            x_test = nputil.image_layout(x_test,old=self.x_layout_file,new=self.x_layout)
 
-        if x_shape is not None:
-            self.x_shape = x_shape
-        if self.x_shape == 'NHWC':
-            x_train = x_train.transpose(0, 2, 3, 1)
-            x_test = x_test.transpose(0, 2, 3, 1)
+        self.x_is_images=True
+
         self.part['X_train']=x_train
         self.part['X_test']=x_test
 

@@ -4,6 +4,7 @@ from . import nputil
 LAYOUT_NP = 'np'
 LAYOUT_NHW = 'nhw'
 LAYOUT_NHWC = 'nhwc'
+LAYOUT_NCHW = 'nchw'
 
 def display_images(images, labels=None, n_cols=8):
     if labels is not None and labels.shape[1]>1:
