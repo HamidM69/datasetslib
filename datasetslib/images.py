@@ -23,8 +23,7 @@ from . import util
 from .dataset import Dataset
 from .utils import nputil
 import numpy as np
-
-from scipy.misc import imread
+import cv2
 
 class ImagesDataset(Dataset):
     def __init__(self):
@@ -37,6 +36,17 @@ class ImagesDataset(Dataset):
         self.x_is_images = False
 
     @property
+    def cv2_imread(self):
+        if self.depth==0:
+            return cv2.IMREAD_UNCHANGED
+        elif self.depth==1:
+            return cv2.IMREAD_GRAYSCALE
+        elif self.depth==3:
+            return cv2.IMREAD_COLOR
+        else:
+            raise Exception('Depth is set to {}, hence cant return cv2_imread'.format(self.depth))
+
+    @property
     def x_layout(self):
         return self._x_layout
 
@@ -46,7 +56,8 @@ class ImagesDataset(Dataset):
 
     def scale(self,x,xmin=0,xmax=255,min=0,max=1):
         assert (xmax-xmin) > 0, 'max and min can not be same'
-        return ((max-min) * ((x.astype(np.float32)-xmin) / (xmax-xmin))) + min
+        a = (max-min) / (xmax - xmin)
+        return a * (x.astype(np.float32)-xmin) + min
 
     def scaleX(self, min=0, max=255):
         for x in self.X_list:
@@ -117,9 +128,9 @@ class ImagesDataset(Dataset):
         return x_batch, y_batch
 
     def load_images(self, files):
-        images = nputil.load_images(files)
+        images = np.array([cv2.imread(i, self.cv2_imread) for i in files])
         if self.x_layout==imutil.LAYOUT_NP:
-            images = nputil.image_to2np(images,self.height, self.width, self.depth)
+            images = nputil.image_nhwc2np(images, self.height, self.width, self.depth)
         else:
             images = nputil.image_layout(images,self.x_layout_file, self.x_layout)
         return images

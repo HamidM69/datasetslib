@@ -4,3 +4,4 @@ from .utils import imutil
 
 
 datasets_root = './datasets'
+dsroot = './dataets'

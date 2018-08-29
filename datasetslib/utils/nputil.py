@@ -1,5 +1,4 @@
 import numpy as np
-import imageio
 
 _EPSILON = 1e-7
 
@@ -13,14 +12,10 @@ def image_layout(x, old, new):
 def image_np2nhwc(x,h,w,c):
     return np.reshape(x,[-1,h,w,c])
 
-def image_to2np(x,h,w,c):
+def image_nhwc2np(x, h, w, c):
     return np.reshape(x,[-1,h*w*c])
 
-def load_images(x):
-    images = np.array([imageio.imread(i) for i in x])
-    return images
-
-def one_hot(y,n_classes=0):
+def onehot(y, n_classes=0):
     if n_classes<2:
         n_classes = np.max(y)+1
     assert n_classes>1, 'Number of classes can not be less than 2'

@@ -6,17 +6,19 @@ from . import nputil
 import numpy as np
 
 from .images import ImagesDataset
-from . import datasets_root
+from . import dsroot
 from . import util
 from . import images
 from .utils import imutil
+from .utils import nputil
 try:
     # Python 2
     from itertools import izip
 except ImportError:
     # Python 3
     izip = zip
-from scipy.misc import imsave
+#from scipy.misc import imsave
+import cv2
 
 class MNIST(ImagesDataset):
 
@@ -28,7 +30,7 @@ class MNIST(ImagesDataset):
                            'train-labels-idx1-ubyte.gz',
                            't10k-images-idx3-ubyte.gz',
                            't10k-labels-idx1-ubyte.gz']
-        self.dataset_home=os.path.join(datasets_root,self.dataset_name)
+        self.dataset_home=os.path.join(dsroot,self.dataset_name)
 
         self.height=28
         self.width=28
@@ -46,6 +48,7 @@ class MNIST(ImagesDataset):
         n_test = 10000
         if x_layout is not None:
             self.x_layout = x_layout
+
         self.downloaded_files=util.download_dataset(source_url=self.source_url,
                                                     source_files=self.source_files,
                                                     dest_dir = self.dataset_home,
@@ -85,7 +88,7 @@ class MNIST(ImagesDataset):
             for i in range(len(data)):
                 image_path = os.path.join(tt_folder,str(labels[i]),'{}.jpg'.format(i))
                 if not os.path.isfile(image_path):
-                    imsave(image_path, data[i][:,:,0])
+                    cv2.imwrite(image_path, data[i][:,:,0])
                     modified_files = True
 
             if modified_files:
@@ -95,12 +98,14 @@ class MNIST(ImagesDataset):
             else:
                 print('Zip file not modified')
 
-        print('Loading in x and y...')
+        print('Loading in x and y... start')
         x_train_files=[]
-        y_train = np.zeros((n_train,), dtype=np.uint8)
+        y_train = []
         x_test_files=[]
-        y_test=np.zeros((n_test,), dtype=np.uint8)
+        y_test=[]
         #print(ilabels)
+        n_train_per_class = n_train // self.n_classes
+        n_test_per_class = n_test // self.n_classes
 
         for i in range(self.n_classes):
             label = str(i)
@@ -109,15 +114,17 @@ class MNIST(ImagesDataset):
             files = [name for name in os.listdir(ifolder) if name.endswith('.jpg')]
             for f in files:
                 x_train_files.append(os.path.join(ifolder,f))
-                #y_train.append(labels2id[label])
-            y_train[i * (n_train // self.n_classes): (i+1) * (n_train // self.n_classes)] = i
+                y_train.append(i)
+
+            #y_train[i * n_train_per_class: (i+1) * n_train_per_class] = i
 
             ifolder = os.path.join(self.dataset_home,'test',label)
             files = [name for name in os.listdir(ifolder) if name.endswith('.jpg')]
             for f in files:
                 x_test_files.append(os.path.join(ifolder,f))
-                #y_val.append(labels2id[label])
-            y_test[i * (n_test // self.n_classes): (i+1) * (n_test // self.n_classes)] = i
+                y_test.append(i)
+
+            #y_test[i * n_test_per_class: (i+1) * n_test_per_class] = i
 
 
         if shuffle:
@@ -128,8 +135,12 @@ class MNIST(ImagesDataset):
             x_test = self.load_images(x_test_files)
         else:
             x_train = x_train_files
-            x_test = x_train_files
+            x_test = x_test_files
         self.x_is_images=x_is_images
+
+        # no need to make onehot here as next batch returns as onehot
+        y_train = np.asarray(y_train)
+        y_test = np.asarray(y_test)
 
         self.part['X_train']=x_train
         self.part['Y_train']=y_train
@@ -141,16 +152,16 @@ class MNIST(ImagesDataset):
         return x_train,y_train,x_test,y_test
 
     def read_data(self,filename, num):
-        """Extract the images into a 4D tensor [image index, y, x, channels].
+        """Extract the #num images into a 4D tensor [image index, y, x, channels].
         Values are rescaled from [0, 255] down to [-0.5, 0.5].
         """
         print('Reading from ', filename)
         with gzip.open(filename) as bytestream:
             bytestream.read(16)
-            buf = bytestream.read(28 * 28 * num)
+            buf = bytestream.read(self.height * self.width * num)
             data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
             #data = (data - (PIXEL_DEPTH / 2.0)) / PIXEL_DEPTH
-            data = data.reshape(num, 28, 28, 1)
+            data = data.reshape(num, self.height * self.width, 1)
             return data
 
 
@@ -162,3 +173,5 @@ class MNIST(ImagesDataset):
             buf = bytestream.read(1 * num)
             labels = np.frombuffer(buf, dtype=np.uint8).astype(np.uint8)
         return labels
+
+

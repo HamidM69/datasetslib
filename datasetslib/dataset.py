@@ -7,9 +7,7 @@ import numpy as np
 
 from .utils import nputil
 
-
 class Dataset(object):
-
     def __init__(self,data=None):
         self.data = data
         self.y_onehot=False
@@ -151,7 +149,7 @@ class Dataset(object):
     def Y_train(self):
         retval = self.part['Y_train']
         if self.y_onehot:
-            return nputil.one_hot(retval)
+            return nputil.onehot(retval)
         else:
             return retval
 
@@ -159,7 +157,7 @@ class Dataset(object):
     def Y_valid(self):
         retval = self.part['Y_valid']
         if self.y_onehot:
-            return nputil.one_hot(retval)
+            return nputil.onehot(retval)
         else:
             return retval
 
@@ -167,7 +165,7 @@ class Dataset(object):
     def Y_test(self):
         retval = self.part['Y_test']
         if self.y_onehot:
-            return nputil.one_hot(retval)
+            return nputil.onehot(retval)
         else:
             return retval
 
@@ -255,7 +253,7 @@ class Dataset(object):
             y_batch = self.part[ypart][start:end]
 
             if self.y_onehot:
-                y_batch = nputil.one_hot(y_batch,self.n_classes)
+                y_batch = nputil.onehot(y_batch, self.n_classes)
             else:
                 y_batch = nputil.to2d(y_batch)
 
@@ -287,3 +285,43 @@ class Dataset(object):
             # else:
             #
             #     return self._images[start:end], self._labels[start:end]
+
+    def tvt_split(self, train_size=0.75, val_size=0):
+
+        results=[]
+        if self._mldata is None:
+            raise ValueError('No ml data found')
+
+        if train_size > 1 or train_size <=0:
+            raise ValueError('train_size has to be between 0 and 1')
+
+        if val_size >= 1 or val_size < 0:
+            raise ValueError('val_size has to be between 0 and 1')
+
+        if train_size + val_size > 1:
+            raise ValueError('train_size + val_size has to be between 0 and 1')
+
+        N = self._mldata.shape[0]
+
+        train_size = int(N * train_size)
+        val_size = int(N * val_size)
+        test_size = N - train_size - val_size
+
+        if(train_size>0):
+            self.part['train'] = self._mldata[0:train_size]
+            results.append(self.part['train'])
+        else:
+            self.part['train'] = None
+
+        if(val_size>0):
+            self.part['valid'] = self._mldata[train_size:train_size+val_size]
+            results.append(self.part['valid'])
+        else:
+            self.part['valid'] = None
+
+        if(test_size>0):
+            self.part['test'] =  self._mldata[train_size+val_size:N]
+            results.append(self.part['test'])
+        else:
+            self.part['test'] = None
+        return results
