@@ -88,7 +88,7 @@ class MNIST(ImagesDataset):
             for i in range(len(data)):
                 image_path = os.path.join(tt_folder,str(labels[i]),'{}.jpg'.format(i))
                 if not os.path.isfile(image_path):
-                    cv2.imwrite(image_path, data[i][:,:,0])
+                    cv2.imwrite(image_path, data[i][:,0])
                     modified_files = True
 
             if modified_files:
