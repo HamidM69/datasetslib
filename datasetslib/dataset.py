@@ -4,6 +4,9 @@ from builtins import super
 from sklearn.preprocessing import StandardScaler as skpp_StandardScaler
 import pandas as pd
 import numpy as np
+import shutil
+import os
+
 
 from .utils import nputil
 
@@ -15,6 +18,7 @@ class Dataset(object):
         self.batch_shuffle = False
         self.init_part()
         self.n_classes = 0
+        self.dataset_home=None
 
     @property
     def data(self):
@@ -325,3 +329,7 @@ class Dataset(object):
         else:
             self.part['test'] = None
         return results
+
+    def remove_home(self):
+        if self.dataset_home is not None and os.path.isdir(self.dataset_home):
+            shutil.rmtree(self.dataset_home)

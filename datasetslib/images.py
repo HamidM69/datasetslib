@@ -111,6 +111,11 @@ class ImagesDataset(Dataset):
 
         return img
 
+    def pil_to_cv(self,pil_image:Image):
+        """ Convert a PIL.Image to opencv BGR image. """
+        pil_image.load()
+        return cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
     def pil_to_nparray(self,pil_image:Image):
         """ Convert a PIL.Image to numpy array. """
         pil_image.load()
