@@ -31,9 +31,9 @@ class TestTimeSeriesDataset(unittest.TestCase):
         pass
 
     @data(data1D, data2D)
-    def test_train_test_split_train1(self,value):
+    def tvt_split_train1(self,value):
         self.tsd.mldata = value
-        self.tsd.train_test_split(train_size=1)
+        self.tsd.tvt_split(train_size=1)
         train_data = np.array(value)
         #print(train_data1D,self.tsd.train)
         assert np.allclose(train_data,self.tsd.train)
@@ -80,7 +80,7 @@ class TestTimeSeriesDataset(unittest.TestCase):
           )
     def test_mvts_to_xy(self,data,X,Y,n_x,n_y,h):
         self.tsd.mldata = data
-        self.tsd.train_test_split(train_size=1)
+        self.tsd.tvt_split(train_size=1)
         self.tsd.mvts_to_xy(n_tx=n_x, n_ty=n_y, h=h)
         print('Y\n',Y)
         print('X_train\n',self.tsd.X_train)

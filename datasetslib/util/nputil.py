@@ -2,18 +2,6 @@ import numpy as np
 
 _EPSILON = 1e-7
 
-def image_layout(x, old, new):
-    if old!=new:
-        new = [old.index(char) for char in new]
-        return np.transpose(x,new)
-    else:
-        return x
-
-def image_np2nhwc(x,h,w,c):
-    return np.reshape(x,[-1,h,w,c])
-
-def image_nhwc2np(x, h, w, c):
-    return np.reshape(x,[-1,h*w*c])
 
 def onehot(y, n_classes=0):
     if n_classes<2:

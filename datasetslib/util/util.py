@@ -19,8 +19,12 @@ except ImportError:
 from datetime import timedelta
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.error import URLError
+from six.moves import urllib
+
 if sys.version_info[0] == 2:
     from six.moves.urllib.request import urlopen
+
+
     def urlretrieve(url, filename, reporthook=None, data=None):
         """Replacement for `urlretrive` for Python 2.
         Under Python 2, `urlretrieve` relies on `FancyURLopener` from legacy
@@ -72,30 +76,32 @@ def df_to_sarray(df):
     """
 
     vals = df.values.astype(np.float32)
-    #print('vals shape:',vals.shape)
+    # print('vals shape:',vals.shape)
     cols = df.columns
-    #print[cols]
+    # print[cols]
     if six.PY2:  # python 2 needs .encode() but 3 does not
-        types = [(cols[i].encode(), df[k].dtype.type) for (i, k) in enumerate(cols)]
+        types = [(cols[i].encode(), df[k].dtype.type) for (i, k) in
+                 enumerate(cols)]
     else:
         types = [(cols[i], df[k].dtype.type) for (i, k) in enumerate(cols)]
 
-    #if six.PY2:  # python 2 needs .encode() but 3 does not
+    # if six.PY2:  # python 2 needs .encode() but 3 does not
     #    types = [(cols[i].encode(), np.dtype(np.float32).type) for (i, k) in enumerate(cols)]
-    #else:
+    # else:
     #    types = [(cols[i], np.dtype(np.float32).type) for (i, k) in enumerate(cols)]
 
     dtype = np.dtype(types)
 
-    #print(dtype)
+    # print(dtype)
     z = np.zeros((vals.shape[0],), dtype)
-    print('z shape:',z.shape)
+    print('z shape:', z.shape)
     for (i, k) in enumerate(z.dtype.names):
         z[k] = vals[:, i]
     return z
 
+
 def shift(arr, num, fill_value=0):
-    #print(arr)
+    # print(arr)
     result = np.empty_like(arr)
     if num > 0:
         result[:num] = fill_value
@@ -107,58 +113,66 @@ def shift(arr, num, fill_value=0):
         result = arr
     return result
 
+
 sflush = sys.stdout.flush
 
-def np_one_hot(y,n_classes):
+
+def np_one_hot(y, n_classes):
     return np.eye(n_classes)[y]
+
 
 def timestamp():
     return datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
 
 class ExpTimer:
     def start(self):
         gc.collect()
         gc.disable()
         self.start_time = time.process_time()
+
     def stop(self):
         self.stop_time = time.process_time()
         gc.enable()
         gc.collect()
+
     @property
     def elapsedTime(self):
         return self.stop_time - self.start_time
 
+
 def objvars(obj):
     print('obj size:{0}'.format(sys.getsizeof(obj)))
     for attr in vars(obj):
-        print('  .{0} type:{1}'.format(attr,type(attr)))
+        print('  .{0} type:{1}'.format(attr, type(attr)))
 
 
 def next_weekday(d, weekday, next=True):
     days_ahead = weekday - d.weekday()
     if next:
-        if days_ahead < 0: # Target day already happened this week
+        if days_ahead < 0:  # Target day already happened this week
             days_ahead += 7
     else:
-        if days_ahead > 0: # Target day already happened this week
+        if days_ahead > 0:  # Target day already happened this week
             days_ahead -= 7
     return d + timedelta(days_ahead)
+
 
 def mvts_to_xy(*tslist, n_x=1, n_y=1, x_idx=None, y_idx=None):
     n_ts = len(tslist)
     if n_ts == 0:
         raise ValueError('At least one timeseries required as input')
 
-    #TODO: Validation of other options
+    # TODO: Validation of other options
 
     result = []
 
     for ts in tslist:
-        ts_cols = 1 if ts.ndim==1 else ts.shape[1]
+        ts_cols = 1 if ts.ndim == 1 else ts.shape[1]
         if x_idx is None:
-            x_idx = range(0,ts_cols)
+            x_idx = range(0, ts_cols)
         if y_idx is None:
-            y_idx = range(0,ts_cols)
+            y_idx = range(0, ts_cols)
 
         n_x_vars = len(x_idx)
         n_y_vars = len(y_idx)
@@ -166,37 +180,39 @@ def mvts_to_xy(*tslist, n_x=1, n_y=1, x_idx=None, y_idx=None):
         ts_rows = ts.shape[0]
         n_rows = ts_rows - n_x - n_y + 1
 
-        dataX=np.empty(shape=(n_rows, n_x_vars * n_x),dtype=np.float32)
-        dataY=np.empty(shape=(n_rows, n_y_vars * n_y),dtype=np.float32)
+        dataX = np.empty(shape=(n_rows, n_x_vars * n_x), dtype=np.float32)
+        dataY = np.empty(shape=(n_rows, n_y_vars * n_y), dtype=np.float32)
         x_cols, y_cols, names = list(), list(), list()
 
         # input sequence x (t-n, ... t-1)
         from_col = 0
         for i in range(n_x, 0, -1):
-            dataX[:,from_col:from_col+n_x_vars]=shift(ts[:,x_idx],i)[n_x:ts_rows-n_y+1]
-            from_col = from_col+n_x_vars
+            dataX[:, from_col:from_col + n_x_vars] = shift(ts[:, x_idx], i)[
+                                                     n_x:ts_rows - n_y + 1]
+            from_col = from_col + n_x_vars
 
         # forecast sequence (t, t+1, ... t+n)
         from_col = 0
         for i in range(0, n_y):
-            #y_cols.append(shift(ts,-i))
-            dataY[:,from_col:from_col+n_y_vars]=shift(ts[:,y_idx],-i)[n_x:ts_rows-n_y+1]
+            # y_cols.append(shift(ts,-i))
+            dataY[:, from_col:from_col + n_y_vars] = shift(ts[:, y_idx], -i)[
+                                                     n_x:ts_rows - n_y + 1]
             from_col = from_col + n_y_vars
 
         # put it all together
-        #x_agg = concat(x_cols, axis=1).dropna(inplace=True)
-        #y_agg = concat(y_cols, axis=1).dropna(inplace=True)
+        # x_agg = concat(x_cols, axis=1).dropna(inplace=True)
+        # y_agg = concat(y_cols, axis=1).dropna(inplace=True)
 
-        #dataX = np.array(x_cols,dtype=np.float32)
-        #dataY = np.array(y_cols,dtype=np.float32)
+        # dataX = np.array(x_cols,dtype=np.float32)
+        # dataY = np.array(y_cols,dtype=np.float32)
 
         result.append(dataX)
         result.append(dataY)
     return result
 
+
 # in case of timeseries, always split test train first
 def train_test_split(timeseries, train_size=0.75, val_size=0.0):
-
     if train_size >= 1:
         raise ValueError('train_size has to be between 0 and 1')
 
@@ -209,30 +225,37 @@ def train_test_split(timeseries, train_size=0.75, val_size=0.0):
     val_size = int(N * val_size)
     test_size = N - train_size - val_size
 
-    if(val_size>0):
-        train, val,test = timeseries[0:train_size,:], timeseries[train_size:train_size+val_size,:], timeseries[train_size+val_size:N,:]
-        return train,val,test
+    if (val_size > 0):
+        train, val, test = timeseries[0:train_size, :], timeseries[
+                                                        train_size:train_size + val_size,
+                                                        :], timeseries[
+                                                            train_size + val_size:N,
+                                                            :]
+        return train, val, test
     else:
-        train, test = timeseries[0:train_size,:], timeseries[train_size:len(timeseries),:]
-        return train,test
+        train, test = timeseries[0:train_size, :], timeseries[
+                                                   train_size:len(timeseries),
+                                                   :]
+        return train, test
 
-def sample_batch(*tslist,batch_size):
+
+def sample_batch(*tslist, batch_size):
     """ Function to sample a batch for training"""
 
     n_ts = len(tslist)
     if n_ts == 0:
         raise ValueError('At least one timeseries required as input')
 
-    #TODO: Validation of other options
+    # TODO: Validation of other options
 
     result = []
     for ts in tslist:
-
         N = ts.shape[0]
-        N_idx = np.random.choice(N,batch_size,replace=False)
+        N_idx = np.random.choice(N, batch_size, replace=False)
         result.append(ts[N_idx])
 
     return result
+
 
 # def next_batch(self, batch_size, fake_data=False, shuffle=True):
 #     """Return the next `batch_size` examples from this data set."""
@@ -288,17 +311,20 @@ def getfunc(fname, objects=globals()):
         fn = None
 
     if fn is None:
-        raise(ValueError('No such function: {0}'.format(fname)))
+        raise (ValueError('No such function: {0}'.format(fname)))
     else:
         return fn
+
 
 def maybe_extract(filename, dirname, force=False):
     root = os.path.splitext(os.path.splitext(filename)[0])[0]  # remove .tar.gz
     if os.path.isdir(root) and not force:
         # You may override by setting force=True.
-        print('%s already present - Skipping extraction of %s.' % (root, filename))
+        print('%s already present - Skipping extraction of %s.' % (
+            root, filename))
     else:
-        print('Extracting data for %s. This may take a while. Please wait.' % root)
+        print(
+            'Extracting data for %s. This may take a while. Please wait.' % root)
         tar = tarfile.open(filename)
         sys.stdout.flush()
         tar.extractall(dirname)
@@ -312,6 +338,7 @@ def maybe_extract(filename, dirname, force=False):
                 num_classes, len(data_folders)))
     print(data_folders)
     return data_folders
+
 
 def extract_archive(archive_file, dest_dir='.', archive_format='auto'):
     """Extracts an archive if it matches tar, tar.gz, tar.bz, or zip formats.
@@ -357,12 +384,18 @@ def extract_archive(archive_file, dest_dir='.', archive_format='auto'):
             return True
     return False
 
-def download_dataset(source_url, source_files, dest_dir, dest_files=None, force = False, extract = False):
+
+def download_dataset(source_url, source_files, dest_dir, dest_files=None,
+                     force_download=False, force_extract=False):
     """Download the data from source url, unless it's already here.
     Args:
+        source_url: url to download from if file doesn't exist.
+        source_files: list of files to be downloaded
         dest_file: string, name of the file in the directory.
         dest_dir: string, path to working directory.
-        source_url: url to download from if file doesn't exist.
+        force_download: overwrite even if its there
+        force_extract: overwrite even if its there
+
     Returns:
         Path to resulting file.
     """
@@ -372,32 +405,36 @@ def download_dataset(source_url, source_files, dest_dir, dest_files=None, force 
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
-    downloaded_files=[]
+    downloaded_files = []
 
-    for source_file,dest_file in izip(source_files, dest_files):
-        orig = source_url + source_file
+    for source_file, dest_file in izip(source_files, dest_files):
+        orig = urllib.parse.urljoin(source_url, source_file)
         dest = os.path.join(dest_dir, dest_file)
-        if force or not os.path.exists(dest):
+        if force_download or not os.path.exists(dest):
             print('Downloading:', orig)
-            error_msg = 'URL fetch failure on {}: {} -- {}'
+            error_msg = 'URL fetch failure on {}: {}'
 
             try:
                 try:
-                    downloaded_file, _ = urlretrieve(orig,dest, reporthook=None)
+                    downloaded_file, _ = urlretrieve(orig, dest,
+                                                     reporthook=None)
                 except URLError as e:
-                    raise Exception(error_msg.format(orig, e.errno, e.reason))
+                    raise Exception(
+                        error_msg.format(orig, '\n'.join([e.errno, e.reason])))
                 except HTTPError as e:
-                    raise Exception(error_msg.format(orig, e.code, e.msg))
+                    raise Exception(error_msg.format(orig,
+                                                     '\n'.join([e.errno, e.code,
+                                                                e.reason])))
             except (Exception, KeyboardInterrupt) as e:
                 if os.path.exists(dest):
                     os.remove(dest)
                 raise
-
             statinfo = os.stat(dest)
-            print('Downloaded :',dest,'(',statinfo.st_size,'bytes)')
+            print('Downloaded :', dest, '(', statinfo.st_size, 'bytes)')
         else:
-            print('Already exists:',dest)
+            print('Already exists:', dest)
         downloaded_files.append(dest_file)
-        if extract:
-            extract_archive(archive_file=dest, dest_dir=dest_dir, archive_format='auto')
+        if force_extract:
+            extract_archive(archive_file=dest, dest_dir=dest_dir,
+                            archive_format='auto')
     return downloaded_files
