@@ -1,5 +1,5 @@
 from .dataset import Dataset
-from . import util
+from util import util
 from . import nputil
 
 
@@ -78,14 +78,14 @@ class TextDataset(Dataset):
         # input sequence x (t-n_tx, ... t)
         from_col = 0
         for i in range(n_tx, 0, -1):
-            dataX[:,from_col:from_col+1]= util.shift(ts[:,x_idx],i)[n_tx:n_rows+n_tx]
+            dataX[:,from_col:from_col+1]= util.shift(ts[:, x_idx], i)[n_tx:n_rows + n_tx]
             from_col = from_col+1
 
         # forecast sequence (t+h, ... t+h+n_ty)
         from_col = 0
         for i in range(0, n_ty):
             #y_cols.append(shift(ts,-i))
-            dataY[:,from_col:from_col+1]= util.shift(ts[:,y_idx],-(i-1))[n_tx:n_rows+n_tx]
+            dataY[:,from_col:from_col+1]= util.shift(ts[:, y_idx], -(i - 1))[n_tx:n_rows + n_tx]
             from_col = from_col + 1
 
         return dataX, dataY

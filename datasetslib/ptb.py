@@ -1,11 +1,10 @@
 import os
 import tarfile
-import numpy as np
-
 
 from . import datasets_root
 from .text import TextDataset
-from . import util
+from util import util
+
 
 class PTBSimple(TextDataset):
     def __init__(self):
@@ -16,11 +15,11 @@ class PTBSimple(TextDataset):
         self.dataset_home=os.path.join(datasets_root,self.dataset_name)
 
     def load_data(self,force=False):
-        self.downloaded_files=util.download_dataset(source_url=self.source_url,
-                                                    source_files=self.source_files,
-                                                    dest_dir = self.dataset_home,
-                                                    force=force,
-                                                    extract=False)
+        self.downloaded_files= util.download_dataset(source_url=self.source_url,
+                                                     source_files=self.source_files,
+                                                     dest_dir = self.dataset_home,
+                                                     force_download=force,
+                                                     force_extract=False)
 
         trainfile ='./simple-examples/data/ptb.train.txt'
         validfile = './simple-examples/data/ptb.valid.txt'

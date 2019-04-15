@@ -1,13 +1,13 @@
 import urllib
 import os
 
-from .images import ImagesDataset
+from .image import ImageDataset
 from . import datasets_root
-from . import util
 
-class imageNet(ImagesDataset):
+
+class imageNet(ImageDataset):
     def __init__(self):
-        ImagesDataset.__init__(self)
+        ImageDataset.__init__(self)
         self.dataset_name='imagenet'
         #self.source_url='http://cs231n.stanford.edu/'
         #self.source_files=['coco-animals.zip']

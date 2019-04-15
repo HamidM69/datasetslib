@@ -1,16 +1,15 @@
 import os
-import re
 import sys
 from six.moves import cPickle
 import tarfile
 
 import numpy as np
 
-from .images import ImagesDataset
+import util.imutil
+from .image import ImageDataset
 from . import datasets_root
-from . import util
-from .utils import imutil
-from .utils import nputil
+from util import util
+from .util import imutil
 
 try:
     # Python 2
@@ -21,9 +20,9 @@ except ImportError:
 
 
 
-class cifar10(ImagesDataset):
+class cifar10(ImageDataset):
     def __init__(self):
-        ImagesDataset.__init__(self)
+        ImageDataset.__init__(self)
         self.dataset_name='cifar10'
         self.source_url='http://www.cs.toronto.edu/~kriz/'
         self.source_files=['cifar-10-python.tar.gz']
@@ -39,11 +38,11 @@ class cifar10(ImagesDataset):
         self.n_classes = 10
 
     def load_data(self,force=False, shuffle=True, x_is_images=False):
-        self.downloaded_files=util.download_dataset(source_url=self.source_url,
-                                                    source_files=self.source_files,
-                                                    dest_dir = self.dataset_home,
-                                                    force=force,
-                                                    extract=False)
+        self.downloaded_files= util.download_dataset(source_url=self.source_url,
+                                                     source_files=self.source_files,
+                                                     dest_dir = self.dataset_home,
+                                                     force_download=force,
+                                                     force_extract=False)
 
         n_train = 50000
         n_test = 10000
@@ -72,8 +71,8 @@ class cifar10(ImagesDataset):
         y_test = np.reshape(y_test,len(y_test),1)
 
         if self.x_layout != self.x_layout_file:
-            x_train = nputil.image_layout(x_train,old=self.x_layout_file,new=self.x_layout)
-            x_test = nputil.image_layout(x_test,old=self.x_layout_file,new=self.x_layout)
+            x_train = util.imutil.image_layout(x_train, old=self.x_layout_file, new=self.x_layout)
+            x_test = util.imutil.image_layout(x_test, old=self.x_layout_file, new=self.x_layout)
 
         self.x_is_images=True
 

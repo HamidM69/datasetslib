@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import glob
-from . import util
+from util import util
+
 
 class CalTrans():
 
@@ -180,7 +181,7 @@ class CalTrans():
                 max_day = max(days_list)
 
                 first_day = util.next_weekday(date_from, min_day) # 0 = Monday, 1=Tuesday, 2=Wednesday...
-                last_day = util.next_weekday(date_to,max_day,next=False)
+                last_day = util.next_weekday(date_to, max_day, next=False)
 
                 filepaths_df = filepaths_df[ (filepaths_df.date >= first_day) & (filepaths_df.date <= last_day) ]
 

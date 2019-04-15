@@ -1,12 +1,12 @@
 import os
 import tarfile
-import numpy as np
 import string
 from nltk.corpus import stopwords
 
 from . import datasets_root
 from .text import TextDataset
-from . import util
+from util import util
+
 
 class CornellMovieReviews(TextDataset):
     def __init__(self):
@@ -17,11 +17,11 @@ class CornellMovieReviews(TextDataset):
         self.dataset_home=os.path.join(datasets_root,self.dataset_name)
 
     def load_data(self,force=False):
-        self.downloaded_files=util.download_dataset(source_url=self.source_url,
-                                                    source_files=self.source_files,
-                                                    dest_dir = self.dataset_home,
-                                                    force=force,
-                                                    extract=False)
+        self.downloaded_files= util.download_dataset(source_url=self.source_url,
+                                                     source_files=self.source_files,
+                                                     dest_dir = self.dataset_home,
+                                                     force_download=force,
+                                                     force_extract=False)
 
         posfile ='./rt-polaritydata/rt-polarity.pos'
         negfile = './rt-polaritydata/rt-polarity.neg'

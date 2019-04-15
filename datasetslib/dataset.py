@@ -1,5 +1,4 @@
-import future, builtins, past, six
-from builtins import super
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from sklearn.preprocessing import StandardScaler as skpp_StandardScaler
 import pandas as pd
@@ -8,7 +7,7 @@ import shutil
 import os
 
 
-from .utils import nputil
+from .util import nputil
 
 class Dataset(object):
     def __init__(self,data=None):
@@ -19,6 +18,22 @@ class Dataset(object):
         self.init_part()
         self.n_classes = 0
         self.dataset_home=None
+
+    @property
+    def n_x(self):
+        """ Number of feature or input columns"""
+        return self._n_x
+    @n_x.setter
+    def n_x(self, _n_x):
+        self._n_x=_n_x
+
+    @property
+    def n_y(self):
+        """ Number of y or output columns"""
+        return self._n_y
+    @n_y.setter
+    def n_y(self, _n_y):
+        self._n_y=_n_y
 
     @property
     def data(self):
@@ -65,8 +80,10 @@ class Dataset(object):
         else:
             if isinstance(data,pd.DataFrame) or isinstance(data,pd.Series):
                 self._mldata = data.values
-            else:
+            elif isinstance(data, np.ndarray):
                 self._mldata = data
+            elif isinstance(data, (list, tuple)):
+                self._mldata = np.asarray(data)
             self._mldata = self._mldata.astype(np.float32)
             if self._mldata.ndim==1:
                 self._mldata = self._mldata.reshape(-1,1)
@@ -109,16 +126,17 @@ class Dataset(object):
         for k, v in self.part.items():
             print(k, 'None' if v is None else v.shape)
 
+    # no need to store X, Y, train, test, valid only broken up ones
     def init_part(self):
         self.part = {
-            'X'        : None,
-            'Y'        : None,
-            'X_train'  : None,
-            'Y_train'  : None,
-            'X_valid'  : None,
-            'Y_valid'  : None,
-            'X_test'   : None,
-            'Y_test'   : None,
+            'x'        : None,
+            'y'        : None,
+            'x_train'  : None,
+            'y_train'  : None,
+            'x_valid'  : None,
+            'y_valid'  : None,
+            'x_test'   : None,
+            'y_test'   : None,
             'train'    : None,
             'test'     : None,
             'valid'    : None,
@@ -134,40 +152,40 @@ class Dataset(object):
         if self.part['Y_train'] is None:
             self._n_train = self.part['train'].shape[0]
         else:
-            self._n_train = self.part['Y_train'].shape[0]
+            self._n_train = self.part['y_train'].shape[0]
         return self._n_train
 
     @property
-    def X_train(self):
-        return self.part['X_train']
+    def x_train(self):
+        return self.part['x_train']
 
     @property
-    def X_valid(self):
-        return self.part['X_valid']
+    def x_valid(self):
+        return self.part['x_valid']
 
     @property
-    def X_test(self):
-        return self.part['X_test']
+    def x_test(self):
+        return self.part['x_test']
 
     @property
-    def Y_train(self):
-        retval = self.part['Y_train']
+    def y_train(self):
+        retval = self.part['y_train']
         if self.y_onehot:
             return nputil.onehot(retval)
         else:
             return retval
 
     @property
-    def Y_valid(self):
-        retval = self.part['Y_valid']
+    def y_valid(self):
+        retval = self.part['y_valid']
         if self.y_onehot:
             return nputil.onehot(retval)
         else:
             return retval
 
     @property
-    def Y_test(self):
-        retval = self.part['Y_test']
+    def y_test(self):
+        retval = self.part['y_test']
         if self.y_onehot:
             return nputil.onehot(retval)
         else:
@@ -290,7 +308,7 @@ class Dataset(object):
             #
             #     return self._images[start:end], self._labels[start:end]
 
-    def tvt_split(self, train_size=0.75, val_size=0):
+    def tvt_split(self, train_size=0.8, val_size=0):
 
         results=[]
         if self._mldata is None:
@@ -329,6 +347,8 @@ class Dataset(object):
         else:
             self.part['test'] = None
         return results
+
+
 
     def remove_home(self):
         if self.dataset_home is not None and os.path.isdir(self.dataset_home):

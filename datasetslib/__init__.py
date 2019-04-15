@@ -1,7 +1,8 @@
-from .utils import nputil
-from .utils import tfutil
-from .utils import imutil
+from .util import nputil
+from .util import tfutil
+from .util import imutil
 
+from os import path
 
-datasets_root = './datasets'
-dsroot = './dataets'
+dsroot = path.normpath(path.join(path.expanduser('~'),'datasets'))
+datasets_root = dsroot

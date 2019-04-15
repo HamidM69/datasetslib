@@ -5,7 +5,8 @@ import tensorflow as tf
 
 from . import datasets_root
 from .text import TextDataset
-from . import util
+from util import util
+
 
 class Text8(TextDataset):
     def __init__(self):
@@ -16,11 +17,11 @@ class Text8(TextDataset):
         self.dataset_home=os.path.join(datasets_root,self.dataset_name)
 
     def load_data(self, force=False, clip_at=0):
-        self.downloaded_files=util.download_dataset(source_url=self.source_url,
-                                                    source_files=self.source_files,
-                                                    dest_dir = self.dataset_home,
-                                                    force=force,
-                                                    extract=False)
+        self.downloaded_files= util.download_dataset(source_url=self.source_url,
+                                                     source_files=self.source_files,
+                                                     dest_dir = self.dataset_home,
+                                                     force_download=force,
+                                                     force_extract=False)
 
         with zipfile.ZipFile(os.path.join(self.dataset_home,self.downloaded_files[0])) as archfile:
             text = tf.compat.as_str(archfile.read(archfile.namelist()[0])).split()

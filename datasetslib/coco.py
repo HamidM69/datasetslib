@@ -4,11 +4,10 @@ import imageio
 from PIL import Image
 import numpy as np
 
-from .images import ImagesDataset
+from .image import ImageDataset
 from . import datasets_root
-from . import util
-from .utils import nputil
-from .utils import imutil
+from util import util
+from .util import imutil
 
 
 try:
@@ -20,9 +19,9 @@ except ImportError:
 
 from tensorflow.contrib.slim.nets import inception, vgg
 
-class coco_animals(ImagesDataset):
+class coco_animals(ImageDataset):
     def __init__(self):
-        ImagesDataset.__init__(self)
+        ImageDataset.__init__(self)
         self.dataset_name='coco-animals'
         self.source_url='http://cs231n.stanford.edu/'
         self.source_files=['coco-animals.zip']
@@ -40,11 +39,11 @@ class coco_animals(ImagesDataset):
     def load_data(self,force=False, shuffle=True, x_is_images=False):
         self.dataset_home=os.path.join(datasets_root,self.dataset_name)
 
-        self.downloaded_files=util.download_dataset(source_url=self.source_url,
-                                                    source_files=self.source_files,
-                                                    dest_dir = self.dataset_home,
-                                                    force=force,
-                                                    extract=True)
+        self.downloaded_files= util.download_dataset(source_url=self.source_url,
+                                                     source_files=self.source_files,
+                                                     dest_dir = self.dataset_home,
+                                                     force_download=force,
+                                                     force_extract=True)
 
         # the archive contains the name of the coco-animals folder, hence this temporary fix for now
         self.dataset_home=os.path.join(self.dataset_home,self.dataset_name)
