@@ -74,7 +74,7 @@ class MNIST(ImageDataset):
                 data = self.read_data(filename=os.path.join(self.dataset_home,
                                                             self.downloaded_files[
                                                                 0]),
-                                      num=n_train
+                                      n_images=n_train
                                       )
                 labels = self.read_labels(
                     filename=os.path.join(self.dataset_home,
@@ -85,7 +85,7 @@ class MNIST(ImageDataset):
                 data = self.read_data(filename=os.path.join(self.dataset_home,
                                                             self.downloaded_files[
                                                                 2]),
-                                      num=n_test
+                                      n_images=n_test
                                       )
                 labels = self.read_labels(
                     filename=os.path.join(self.dataset_home,
@@ -148,15 +148,15 @@ class MNIST(ImageDataset):
         print('Loading in x and y... done')
         return x_train, y_train, x_test, y_test
 
-    def read_data(self, filename, num):
+    def read_data(self, filename, n_images):
         """Extract the #num images into a 4D tensor [image index, y, x, channels].
         """
         print('Reading from ', filename)
         with gzip.open(filename) as bytestream:
             bytestream.read(16)
-            buf = bytestream.read(self.height * self.width * num)
+            buf = bytestream.read(self.height * self.width * n_images)
             data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
-            data = data.reshape(num, self.height * self.width, 1)
+            data = data.reshape(n_images, self.height * self.width, 1)
             return data
 
     def read_labels(self, filename, num):

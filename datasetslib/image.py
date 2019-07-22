@@ -69,17 +69,18 @@ class ImageDataset(Dataset):
         for x in self.X_list:
             self.part[x] = self.scale(self.part[x])
 
-    def load_image(self, in_image):
+    # TODO: Remove when imutil function is matured
+    def load_image(self, image_location):
         """ Load an image, returns PIL.Image. """
         # if the path appears to be an URL
-        if urlparse(in_image).scheme in ('http', 'https',):
+        if urlparse(image_location).scheme in ('http', 'https',):
             # set up the byte stream
-            img_stream = BytesIO(request.urlopen(in_image).read())
+            img_stream = BytesIO(request.urlopen(image_location).read())
             # and read in as PIL image
             img = Image.open(img_stream)
         else:
             # else use it as local file path
-            img = Image.open(in_image)
+            img = Image.open(image_location)
         return img
 
     def load_images(self, files):
