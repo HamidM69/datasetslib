@@ -438,3 +438,18 @@ def download_dataset(source_url, source_files, dest_dir, dest_files=None,
             extract_archive(archive_file=dest, dest_dir=dest_dir,
                             archive_format='auto')
     return downloaded_files
+
+import logging
+import sys
+
+def get_logger(name='datasetslib',
+               stream=sys.stdout,
+               level = logging.INFO,
+               format = '%(asctime)s [%(levelname)-8s] %(message)s'):
+    formatter = logging.Formatter(format)
+    handler = logging.StreamHandler(stream=stream)
+    handler.setFormatter(formatter)
+    handler.setLevel(level)
+    log = logging.Logger(name)
+    log.addHandler(handler)
+    return log

@@ -1,5 +1,5 @@
 from .dataset import Dataset
-from util import util
+from .util import util
 import numpy as np
 
 

@@ -5,8 +5,7 @@ import pandas as pd
 import numpy as np
 import shutil
 import os
-
-
+from .util import util
 from .util import nputil
 
 class Dataset(object):
@@ -18,7 +17,7 @@ class Dataset(object):
         self.init_part()
         self.n_classes = 0
         self.dataset_home=None
-
+        self.log = util.get_logger(name='dataset')
     @property
     def n_x(self):
         """ Number of feature or input columns"""
@@ -351,5 +350,11 @@ class Dataset(object):
 
 
     def remove_home(self):
-        if self.dataset_home is not None and os.path.isdir(self.dataset_home):
-            shutil.rmtree(self.dataset_home)
+        if self.dataset_home is None:
+            self.log.info('home not defined')
+        else:
+            if os.path.isdir(self.dataset_home):
+                shutil.rmtree(self.dataset_home)
+                self.log.info('deleted '+self.dataset_home)
+            else:
+                self.log.info('home does not exist')
